@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#ffc62f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>NS Trein Guesser + Drukte melden</title>
+  <style>
+    :root {
+      --ns-yellow: #ffc62f;
+      --ns-blue: #003082;
+      --ns-dark: #1a1a1a;
+      --bg: #f5f5f5;
+      --card: #ffffff;
+      --text: #222;
+      --muted: #666;
+      --border: #e0e0e0;
+      --success: #2e7d32;
+      --warn: #ed6c02;
+      --danger: #c62828;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+
+    header {
+      background: var(--ns-yellow);
+      color: var(--ns-dark);
+      padding: 16px 16px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      font-size: 0.8rem;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      border: 1px solid var(--border);
+    }
+
+    .card h2 {
+      font-size: 1.05rem;
+      margin-bottom: 12px;
+      color: var(--ns-blue);
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--muted);
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 14px 14px;
+      font-size: 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      -webkit-appearance: none;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--ns-blue);
+      box-shadow: 0 0 0 3px rgba(0,48,130,0.12);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 18px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.15s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--ns-blue);
+      color: #fff;
+      margin-top: 12px;
+    }
+
+    .btn-secondary {
+      background: #eee;
+      color: var(--text);
+      margin-top: 8px;
+    }
+
+    .btn-yellow {
+      background: var(--ns-yellow);
+      color: var(--ns-dark);
+    }
+
+    .train-list {
+      list-style: none;
+    }
+
+    .train-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      border-radius: 10px;
+      transition: background 0.15s;
+    }
+
+    .train-item:last-child { border-bottom: none; }
+    .train-item:active, .train-item.selected {
+      background: #fff8e1;
+    }
+
+    .train-time {
+      font-weight: 700;
+      font-size: 1.15rem;
+      min-width: 52px;
+      color: var(--ns-blue);
+    }
+
+    .train-delay {
+      font-size: 0.75rem;
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    .train-info {
+      flex: 1;
+    }
+
+    .train-dest {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .train-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      background: #e8eaf6;
+      color: var(--ns-blue);
+    }
+
+    .crowding-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .crowd-btn {
+      padding: 16px 10px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+
+    .crowd-btn:active { transform: scale(0.97); }
+    .crowd-btn.selected {
+      border-color: var(--ns-blue);
+      background: #e8eaf6;
+    }
+
+    .crowd-btn .emoji { font-size: 1.6rem; display: block; margin-bottom: 4px; }
+    .crowd-btn.quiet .emoji { filter: none; }
+    .crowd-btn.medium { border-color: #ffb74d; }
+    .crowd-btn.busy { border-color: #ef5350; }
+    .crowd-btn.full { border-color: #b71c1c; background: #ffebee; }
+
+    .steps {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 12px;
+      font-size: 0.9rem;
+    }
+
+    .steps ol {
+      margin-left: 18px;
+      margin-top: 8px;
+    }
+
+    .steps li { margin-bottom: 6px; }
+
+    .note {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.4;
+    }
+
+    .success-banner {
+      background: #e8f5e9;
+      border: 1px solid #a5d6a7;
+      color: var(--success);
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .success-banner.show { display: block; }
+
+    .hidden { display: none !important; }
+
+    footer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+      padding: 20px 16px;
+    }
+
+    footer a { color: var(--ns-blue); }
+
+    .station-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      font-size: 0.78rem;
+      padding: 6px 12px;
+      background: #eee;
+      border-radius: 20px;
+      cursor: pointer;
+      border: none;
+    }
+
+    .chip:active { background: #ddd; }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #121212;
+        --card: #1e1e1e;
+        --text: #eee;
+        --muted: #aaa;
+        --border: #333;
+      }
+      input, select { background: #2a2a2a; color: #eee; border-color: #444; }
+      .btn-secondary { background: #333; color: #eee; }
+      .chip { background: #333; color: #eee; }
+      .steps { background: #2a2a2a; }
+      .train-item.selected, .train-item:active { background: #2a2a1a; }
+      .crowd-btn { background: #2a2a2a; color: #eee; }
+      .crowd-btn.selected { background: #1a237e; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>NS Trein Guesser</h1>
+    <p>Raad welke trein je zit + meld de drukte</p>
+  </header>
+
+  <div class="container">
+
+    <!-- Step 1: Station -->
+    <div id="step-station" class="card">
+      <h2>1. Van welk station?</h2>
+      <label for="station">Station of code</label>
+      <input type="text" id="station" placeholder="bijv. Utrecht Centraal of UT" autocomplete="off" />
+      <div class="station-suggestions">
+        <button class="chip" data-station="Utrecht Centraal">Utrecht</button>
+        <button class="chip" data-station="Amsterdam Centraal">Amsterdam</button>
+        <button class="chip" data-station="Rotterdam Centraal">Rotterdam</button>
+        <button class="chip" data-station="Den Haag Centraal">Den Haag</button>
+        <button class="chip" data-station="Schiphol Airport">Schiphol</button>
+        <button class="chip" data-station="Eindhoven Centraal">Eindhoven</button>
+      </div>
+      <button class="btn btn-primary" id="btn-search">Toon treinen</button>
+      <p class="note">Werkt het beste als je net vertrokken bent of op het station staat.</p>
+    </div>
+
+    <!-- Step 2: Train list -->
+    <div id="step-trains" class="card hidden">
+      <h2>2. Welke trein zit je in?</h2>
+      <p class="note" id="from-label" style="margin-bottom:10px;"></p>
+      <ul class="train-list" id="train-list"></ul>
+      <button class="btn btn-secondary" id="btn-back-station">← Ander station</button>
+    </div>
+
+    <!-- Step 3: Crowding report -->
+    <div id="step-report" class="card hidden">
+      <h2>3. Hoe druk is het?</h2>
+      <div id="selected-train-info" style="margin-bottom:14px; font-size:0.95rem;"></div>
+
+      <div class="crowding-options">
+        <button class="crowd-btn quiet" data-level="1">
+          <span class="emoji">🟢</span>
+          Rustig
+        </button>
+        <button class="crowd-btn medium" data-level="2">
+          <span class="emoji">🟠</span>
+          Gemiddeld
+        </button>
+        <button class="crowd-btn busy" data-level="3">
+          <span class="emoji">🔴</span>
+          Druk
+        </button>
+        <button class="crowd-btn full" data-level="4">
+          <span class="emoji">⛔</span>
+          Vol / staan
+        </button>
+      </div>
+
+      <button class="btn btn-primary" id="btn-submit" disabled style="margin-top:16px;">
+        Melding opslaan
+      </button>
+      <button class="btn btn-secondary" id="btn-back-trains">← Andere trein</button>
+    </div>
+
+    <!-- Step 4: Done + NS app instructions -->
+    <div id="step-done" class="card hidden">
+      <div class="success-banner show">
+        ✓ Melding lokaal opgeslagen
+      </div>
+      <h2>Nu ook in de NS-app melden</h2>
+      <p style="margin-bottom:10px;">Zo komt de melding écht bij NS terecht (voor de drukte-indicator en capaciteitsplanning):</p>
+      <div class="steps">
+        <ol>
+          <li>Open de <strong>NS-app</strong></li>
+          <li>Ga naar je reis of zoek de trein op</li>
+          <li>Tik op de trein / reisdetails</li>
+          <li>Kies <strong>Drukte melden</strong></li>
+          <li>Geef dezelfde beoordeling door</li>
+        </ol>
+      </div>
+      <p class="note">
+        Er is geen openbare API om drukte-meldingen direct naar NS te sturen.
+        De officiële app is de enige betrouwbare weg.
+      </p>
+      <button class="btn btn-yellow" id="btn-restart" style="margin-top:16px;">
+        Nieuwe melding
+      </button>
+    </div>
+
+  </div>
+
+  <footer>
+    Geen officiële NS-app · Open source prototype<br>
+    Host op GitHub Pages · Data is demonstratie / publiek beschikbaar
+  </footer>
+
+  <script>
+    // ---------- Station mapping ----------
+    const STATION_CODES = {
+      "utrecht centraal": "UT", "utrecht": "UT", "ut": "UT",
+      "amsterdam centraal": "ASD", "amsterdam": "ASD", "asd": "ASD",
+      "rotterdam centraal": "RTD", "rotterdam": "RTD", "rtd": "RTD",
+      "den haag centraal": "GVC", "den haag": "GVC", "gvc": "GVC", "denhaag": "GVC",
+      "schiphol airport": "SHL", "schiphol": "SHL", "shl": "SHL",
+      "eindhoven centraal": "EHV", "eindhoven": "EHV", "ehv": "EHV",
+      "groningen": "GN", "gn": "GN",
+      "arnhem centraal": "AH", "arnhem": "AH", "ah": "AH",
+      "leiden centraal": "LEDN", "leiden": "LEDN",
+      "haarlem": "HLM", "hlm": "HLM",
+      "breda": "BD", "bd": "BD",
+      "tilburg": "TB", "tb": "TB",
+      "nijmegen": "NM", "nm": "NM",
+      "amersfoort centraal": "AMF", "amersfoort": "AMF", "amf": "AMF",
+      "zwolle": "ZL", "zl": "ZL",
+      "maastricht": "MT", "mt": "MT",
+      "delft": "DT", "dt": "DT",
+      "gouda": "GD", "gd": "GD"
+    };
+
+    // ---------- Demo departures (replaceable with live fetch later) ----------
+    function generateDemoDepartures(stationName) {
+      const now = new Date();
+      const destinations = {
+        "UT": [
+          { dest: "Amsterdam Centraal", type: "Intercity", platform: "7" },
+          { dest: "Rotterdam Centraal", type: "Intercity", platform: "5" },
+          { dest: "Amersfoort Centraal", type: "Sprinter", platform: "12" },
+          { dest: "Den Haag Centraal", type: "Intercity", platform: "9" },
+          { dest: "Eindhoven Centraal", type: "Intercity", platform: "3" },
+          { dest: "Zwolle", type: "Intercity", platform: "15" }
+        ],
+        "ASD": [
+          { dest: "Utrecht Centraal", type: "Intercity", platform: "4" },
+          { dest: "Rotterdam Centraal", type: "Intercity", platform: "8" },
+          { dest: "Schiphol Airport", type: "Sprinter", platform: "2" },
+          { dest: "Den Haag Centraal", type: "Intercity", platform: "5" },
+          { dest: "Amersfoort Centraal", type: "Intercity", platform: "11" }
+        ],
+        "default": [
+          { dest: "Utrecht Centraal", type: "Intercity", platform: "3" },
+          { dest: "Amsterdam Centraal", type: "Intercity", platform: "5" },
+          { dest: "Rotterdam Centraal", type: "Sprinter", platform: "2" },
+          { dest: "Den Haag Centraal", type: "Intercity", platform: "4" }
+        ]
+      };
+
+      const code = normalizeStation(stationName);
+      const list = destinations[code] || destinations["default"];
+
+      return list.map((t, i) => {
+        const mins = 2 + i * 6 + Math.floor(Math.random() * 3);
+        const dep = new Date(now.getTime() + mins * 60000);
+        const delay = Math.random() > 0.7 ? Math.floor(Math.random() * 6) + 1 : 0;
+        return {
+          time: dep.toTimeString().slice(0, 5),
+          delay,
+          dest: t.dest,
+          type: t.type,
+          platform: t.platform,
+          service: String(1000 + Math.floor(Math.random() * 8000)),
+          from: stationName,
+          code
+        };
+      });
+    }
+
+    function normalizeStation(name) {
+      const key = name.trim().toLowerCase();
+      return STATION_CODES[key] || key.slice(0, 3).toUpperCase();
+    }
+
+    // ---------- State ----------
+    let currentTrains = [];
+    let selectedTrain = null;
+    let selectedLevel = null;
+
+    // ---------- DOM helpers ----------
+    const $ = (id) => document.getElementById(id);
+    const show = (id) => $(id).classList.remove("hidden");
+    const hide = (id) => $(id).classList.add("hidden");
+
+    function showOnly(stepId) {
+      ["step-station", "step-trains", "step-report", "step-done"].forEach(hide);
+      show(stepId);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ---------- Event listeners ----------
+    document.querySelectorAll(".chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        $("station").value = chip.dataset.station;
+      });
+    });
+
+    $("btn-search").addEventListener("click", () => {
+      const station = $("station").value.trim();
+      if (!station) {
+        $("station").focus();
+        return;
+      }
+      currentTrains = generateDemoDepartures(station);
+      renderTrainList(station);
+      showOnly("step-trains");
+    });
+
+    $("station").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") $("btn-search").click();
+    });
+
+    $("btn-back-station").addEventListener("click", () => showOnly("step-station"));
+    $("btn-back-trains").addEventListener("click", () => showOnly("step-trains"));
+    $("btn-restart").addEventListener("click", () => {
+      selectedTrain = null;
+      selectedLevel = null;
+      document.querySelectorAll(".crowd-btn").forEach(b => b.classList.remove("selected"));
+      $("btn-submit").disabled = true;
+      showOnly("step-station");
+    });
+
+    function renderTrainList(station) {
+      $("from-label").textContent = `Van: ${station}`;
+      const list = $("train-list");
+      list.innerHTML = "";
+
+      currentTrains.forEach((t, idx) => {
+        const li = document.createElement("li");
+        li.className = "train-item";
+        li.innerHTML = `
+          <div>
+            <div class="train-time">${t.time}</div>
+            ${t.delay ? `<div class="train-delay">+${t.delay}</div>` : ""}
+          </div>
+          <div class="train-info">
+            <div class="train-dest">${t.dest}</div>
+            <div class="train-meta">${t.type} · spoor ${t.platform} · rit ${t.service}</div>
+          </div>
+          <span class="badge">${t.type === "Sprinter" ? "SPR" : "IC"}</span>
+        `;
+        li.addEventListener("click", () => {
+          selectedTrain = t;
+          $("selected-train-info").innerHTML = `
+            <strong>${t.time}</strong> → ${t.dest}<br>
+            <span style="color:var(--muted);font-size:0.85rem;">${t.type} · spoor ${t.platform}</span>
+          `;
+          showOnly("step-report");
+        });
+        list.appendChild(li);
+      });
+    }
+
+    // Crowding buttons
+    document.querySelectorAll(".crowd-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".crowd-btn").forEach(b => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        selectedLevel = btn.dataset.level;
+        $("btn-submit").disabled = false;
+      });
+    });
+
+    $("btn-submit").addEventListener("click", () => {
+      if (!selectedTrain || !selectedLevel) return;
+
+      const report = {
+        timestamp: new Date().toISOString(),
+        station: selectedTrain.from,
+        code: selectedTrain.code,
+        time: selectedTrain.time,
+        destination: selectedTrain.dest,
+        type: selectedTrain.type,
+        platform: selectedTrain.platform,
+        service: selectedTrain.service,
+        crowding: selectedLevel,
+        labels: { "1": "rustig", "2": "gemiddeld", "3": "druk", "4": "vol" }
+      };
+
+      // Save to localStorage
+      const key = "ns_crowding_reports";
+      const existing = JSON.parse(localStorage.getItem(key) || "[]");
+      existing.push(report);
+      localStorage.setItem(key, JSON.stringify(existing));
+
+      // Optional: console for debugging
+      console.log("Report saved:", report);
+
+      showOnly("step-done");
+    });
+
+    // ---------- Future: live data ----------
+    // You can later replace generateDemoDepartures() with a fetch to a public
+    // departure board or a self-hosted GoTrain instance, e.g.:
+    //
+    // async function fetchLiveDepartures(code) {
+    //   const res = await fetch(`https://your-gotrain-instance/v2/departures/station/${code}`);
+    //   const data = await res.json();
+    //   return data.departures.map(...);
+    // }
+  </script>
+</body>
+</html>
